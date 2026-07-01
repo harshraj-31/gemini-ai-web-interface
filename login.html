@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login / Sign up — Gemini Chat</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="assets/login.png">
+  
+  <style>
+    /* Login page tweaks re-using theme variables from main page*/
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+      background: var(--primary-color);
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--secondary-color);
+      border-radius: 14px;
+      padding: 20px 24px;
+      border: 1px solid var(--secondary-hover-color);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25)
+    }
+
+    .auth-card h2 {
+      margin-bottom: 6px;
+      font-size: 1.5rem
+    }
+
+    .auth-card p.lead {
+      margin: 0 0 12px;
+      color: var(--placeholder-color)
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px
+    }
+
+    .form-group input {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: var(--primary-color);
+      color: var(--text-color);
+      outline: none
+    }
+
+    .auth-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px
+    }
+
+    .btn {
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      background: #1d7efd;
+      color: white;
+      font-weight: 600
+    }
+
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid var(--secondary-hover-color);
+      color: var(--text-color)
+    }
+
+    .error {
+      color: #ff7675;
+      font-size: 0.9rem;
+      margin-top: 6px;
+      display: none
+    }
+
+    label {
+      font-size: 0.9rem;
+      color: var(--placeholder-color)
+    }
+
+    .small-link {
+      color: var(--placeholder-color);
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 0.9rem
+    }
+
+    .toggle-links {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 12px
+    }
+    
+    
+  </style>
+</head>
+
+<body>
+  <div class="auth-page">
+    <div class="auth-card" role="main" aria-labelledby="authTitle">
+      <h2 id="authTitle">Welcome back</h2>
+      <p class="lead" id="authLead">Log in to continue to Gemini Chat</p>
+
+      <form id="auth-form" autocomplete="on">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" placeholder="e.g. Abc123" required />
+        </div>
+
+        <div class="form-group" id="password-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Your password" required />
+        </div>
+
+        <div class="error" id="auth-error">Please enter both username and password.</div>
+
+        <div class="auth-actions">
+          <button type="submit" id="primary-btn" class="btn">Sign In</button>
+          <button type="button" id="switch-btn" class="btn secondary">Create account</button>
+        </div>
+
+        <div class="toggle-links">
+          <!-- guest link removed as requested -->
+          <span class="small-link" id="forgot-pass">Forgot password?</span>
+        </div>
+
+        <!-- demo-note removed as requested -->
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Apply theme exactly like index.html uses
+    (function applyTheme() {
+      const isLight = localStorage.getItem('themeColor') === 'light_mode';
+      if (isLight) document.body.classList.add('light-theme');
+    })();
+
+    // Helper: read & write simple users store in localStorage
+    const Users = {
+      key: 'users',
+      load() {
+        try { return JSON.parse(localStorage.getItem(this.key) || '{}'); }
+        catch (e) { return {}; }
+      },
+      save(obj) { localStorage.setItem(this.key, JSON.stringify(obj)); }
+    };
+
+    // Elements
+    const form = document.getElementById('auth-form');
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
+    const errorEl = document.getElementById('auth-error');
+    const switchBtn = document.getElementById('switch-btn');
+    const primaryBtn = document.getElementById('primary-btn');
+    const authTitle = document.getElementById('authTitle');
+    const authLead = document.getElementById('authLead');
+    const forgotPass = document.getElementById('forgot-pass');
+
+    // Mode: 'login' or 'signup'
+    let mode = 'login';
+    function setMode(m) {
+      mode = m;
+      if (mode === 'login') {
+        authTitle.textContent = 'Welcome back';
+        authLead.textContent = 'Log in to continue to Gemini Chat';
+        primaryBtn.textContent = 'Sign In';
+        switchBtn.textContent = 'Create account';
+        errorEl.style.display = 'none';
+      } else {
+        authTitle.textContent = 'Create account';
+        authLead.textContent = 'Choose a username and password';
+        primaryBtn.textContent = 'Sign up';
+        switchBtn.textContent = 'Already have account?';
+        errorEl.style.display = 'none';
+      }
+    }
+    setMode('login');
+
+    // Submit: login or signup
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = usernameEl.value.trim();
+      const pass = passwordEl.value.trim();
+      if (!user || !pass) {
+        errorEl.textContent = 'Please enter both username and password.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const users = Users.load();
+
+      if (mode === 'login') {
+        // check credentials
+        if (users[user] && users[user] === pass) {
+          localStorage.setItem('chatUser', user);
+          if (!localStorage.getItem('themeColor')) localStorage.setItem('themeColor', 'dark_mode');
+          location.href = 'index.html';
+        } else if (users[user]) {
+          errorEl.textContent = 'Wrong password. Try again or use "Forgot password".';
+          errorEl.style.display = 'block';
+        } else {
+          // suggest signup
+          errorEl.textContent = 'No account found. Click "Create account" to sign up.';
+          errorEl.style.display = 'block';
+        }
+      } else {
+        // signup
+        if (users[user]) {
+          errorEl.textContent = 'Username already taken — choose another.';
+          errorEl.style.display = 'block';
+          return;
+        }
+        // save user (client-side demo only)
+        users[user] = pass;
+        Users.save(users);
+        // auto-login
+        localStorage.setItem('chatUser', user);
+        if (!localStorage.getItem('themeColor')) localStorage.setItem('themeColor', 'dark_mode');
+        location.href = 'index.html';
+      }
+    });
+
+    // Toggle between login and signup
+    switchBtn.addEventListener('click', () => setMode(mode === 'login' ? 'signup' : 'login'));
+
+    // Forgot password (client-side hint only)
+    forgotPass.addEventListener('click', () => {
+      const user = usernameEl.value.trim();
+      const users = Users.load();
+      if (!user || !users[user]) {
+        errorEl.textContent = 'Enter your username and click this again to see a hint (demo only).';
+        errorEl.style.display = 'block';
+        return;
+      }
+      // demo hint (never do this in production)
+      errorEl.textContent = `Password hint: first char and length → ${users[user].charAt(0)} • ${users[user].length} chars`;
+      errorEl.style.display = 'block';
+    });
+  </script>
+</body>
+
+</html>
