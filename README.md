@@ -135,7 +135,7 @@ No additional installation or dependencies are required.
 
 ## License
 
-This project is licensed under the MIT License.
+This Project is intended for educational purposes.
 
 ---
 
